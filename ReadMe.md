@@ -1,41 +1,81 @@
-# REST API для управління контактами
+# Contact Management API (GoIT Python Web HW-10)
 
-Даний проект — це RESTful API для зберігання та управління інформацією про контакти, розроблений на базі FastAPI та PostgreSQL.
+A robust RESTful API built with **FastAPI** for managing contacts. The application supports user authentication (JWT), full CRUD operations for contacts, and automated database migrations using **Alembic** .
 
-## Основні можливості
+## 🚀 Features
 
-Програма дозволяє створювати нові контакти, переглядати весь список, шукати людей за іменем чи email, а також видаляти або оновлювати дані. Окремо реалізована функція пошуку іменинників на найближчі 7 днів.
+- **User Authentication:** Secure registration and login using JWT tokens.
+- **Contact Management:** Create, read, update, and delete contacts.
+- **Search & Filters:** Search contacts by name, last name, or email.
+- **Upcoming Birthdays:** Specialized endpoint to retrieve contacts with birthdays in the next 7 days.
+- **Database Migrations:** Version control for your PostgreSQL schema via Alembic.
+- **Dockerized Development:** Fully containerized environment with live-syncing for code changes.
 
-## Як налаштувати та запустити проект
+## 🛠 Tech Stack
 
-1. Підготовка середовища
-   Відкрийте термінал Git Bash у папці проекту. Створіть віртуальне середовище командою:
-   `python -m venv venv`
+- **Framework:** FastAPI
+- **Database:** PostgreSQL (v15)
+- **ORM:** SQLAlchemy
+- **Migrations:** Alembic
+- **Containerization:** Docker & Docker Compose
+- **Documentation:** Swagger UI (OpenAPI)
 
-   `source venv/Scripts/activate`
-2. Встановлення необхідних програм
-   Встановіть усі бібліотеки одним рядком:
-   `pip install fastapi uvicorn sqlalchemy psycopg2-binary pydantic[email] alembic faker`
-   Або
-   `pip install -r requirements.txt`
-3. Налаштування бази даних
-   Переконайтеся, що ваш PostgreSQL запущений. У файлах db.py та alembic.ini має бути вказаний ваш актуальний пароль (за замовчуванням стоїть mysecretpassword).
-4. Виконайте для міграцій:
-   `alembic upgrade head`
-5. Заповнення бази та запуск
-   Спочатку запустіть скрипт для генерації тестових контактів:
-   `python seed.py`
+## 📦 Installation & Setup
 
-   Тепер запускайте сам сервер:`uvicorn main:app --reload`
+### 1. Prerequisites
 
-   Коли сервер запуститься, відкрийте браузер за адресою:[
-   `http://127.0.0.1:8000/docs`](https://www.google.com/search?q=http://127.0.0.1:8000/docs)
+- Docker and Docker Compose installed.
+- A `.env` file in the root directory (refer to `.env.example`).
 
-## Структура файлів
+### 2. Launch the Application
 
-- main.py: основний код сервера та маршрути.
-- models.py: опис таблиць для бази даних.
-- schemas.py: правила перевірки даних (email, телефони).
-- crud.py: логіка роботи з даними (пошук, видалення).
-- seed.py: генератор випадкових контактів.
-- alembic: папка з історією змін бази даних.
+Run the following command to build and start the containers in the background:
+
+**Bash**
+
+```
+docker-compose up -d
+```
+
+This starts two services:
+
+- `postgres_db`: The database running on port `5432`.
+- `fastapi_app`: The API running on port `8000`.
+
+### 3. Database Migrations
+
+To set up the database tables (`users`, `contacts`), apply the migrations inside the container:
+
+**Bash**
+
+```
+docker-compose exec web alembic upgrade head
+```
+
+This will create the necessary relations in your `HW10` database.
+
+## 📋 API Usage & Testing
+
+### Interactive Documentation
+
+Once the app is running, access the interactive Swagger UI to test the endpoints:
+
+- **Swagger:** [http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)
+
+### Testing Flow
+
+1. **Register:** Navigate to `POST /api/auth/register`. Click **Try it out** , enter an email and password, and click **Execute** .
+2. **Login:** Go to `POST /api/auth/login`. Use the same credentials to receive an `access_token`.
+3. **Authorize:** \* Copy the token value.
+   - Click the **Authorize** button at the top of the page.
+   - Paste the token and save.
+4. **Contacts:** You can now manually add/update/delete contacts using API Docs and they will be saved to your PostgreSQL database.
+
+## 📂 Project Structure
+
+- `main.py`: Application entry point.
+- `models.py`: SQLAlchemy database models.
+- `schemas.py`: Pydantic models for data validation.
+- `auth.py`: Authentication handlers.
+- `alembic/`: Migration scripts and configuration.
+- `docker-compose.yml`: Container orchestration with host-to-container volume syncing.

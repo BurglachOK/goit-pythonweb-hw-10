@@ -1,26 +1,28 @@
 import os
 import sys
 from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
+from sqlalchemy import engine_from_config, pool
+from dotenv import load_dotenv
 from alembic import context
 
+load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
 from db import Base
+import models
 
 config = context.config
 fileConfig(config.config_file_name)
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://postgres:mysecretpassword@localhost:5432/postgres",
-)
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 target_metadata = Base.metadata
-
 
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")

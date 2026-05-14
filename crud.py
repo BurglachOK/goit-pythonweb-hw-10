@@ -1,38 +1,38 @@
 from datetime import date, timedelta
 from typing import List, Optional
-
 from sqlalchemy import or_, extract, and_
 from sqlalchemy.orm import Session
 from models import Contact
+import models
 from schemas import ContactCreate, ContactUpdate
 
-def get_contacts(db: Session, skip: int = 0, limit: int = 100) -> List[Contact]:
+def get_contacts(db: Session, user: models.User, skip: int = 0, limit: int = 100):
     """
-    Retrieve a list of contacts with pagination.
+    Gets a list of contacts only for the current user with pagination support.
     """
-    return db.query(Contact).offset(skip).limit(limit).all()
+    return db.query(Contact).filter(Contact.user_id == user.id).offset(skip).limit(limit).all()
 
-def get_contact(db: Session, contact_id: int) -> Optional[Contact]:
+def get_contact(db: Session, contact_id: int, user: models.User) -> Optional[Contact]:
     """
-    Retrieve a single contact by its ID.
+    Gets a specific contact by ID, checking ownership by the current user.
     """
-    return db.query(Contact).filter(Contact.id == contact_id).first()
+    return db.query(Contact).filter(and_(Contact.id == contact_id, Contact.user_id == user.id)).first()
 
-def create_contact(db: Session, contact: ContactCreate) -> Contact:
+def create_contact(db: Session, contact: ContactCreate, user: models.User):
     """
-    Create a new contact record.
+    Creates a new contact, automatically linking it to the current user's ID.
     """
-    db_contact = Contact(**contact.model_dump())
+    db_contact = Contact(**contact.model_dump(), user_id=user.id)
     db.add(db_contact)
     db.commit()
     db.refresh(db_contact)
     return db_contact
 
-def update_contact(db: Session, contact_id: int, contact: ContactUpdate) -> Optional[Contact]:
+def update_contact(db: Session, contact_id: int, contact: ContactUpdate, user: models.User) -> Optional[Contact]:
     """
-    Update an existing contact. Supports partial updates (PATCH).
+    Updates an existing contact (PATCH), if it belongs to the current user.
     """
-    db_contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    db_contact = db.query(Contact).filter(and_(Contact.id == contact_id, Contact.user_id == user.id)).first()
     if db_contact:
         update_data = contact.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -42,31 +42,34 @@ def update_contact(db: Session, contact_id: int, contact: ContactUpdate) -> Opti
         db.refresh(db_contact)
     return db_contact
 
-def delete_contact(db: Session, contact_id: int) -> Optional[Contact]:
+def delete_contact(db: Session, contact_id: int, user: models.User) -> Optional[Contact]:
     """
-    Remove a contact record from the database.
+    Deletes a contact from the database if it belongs to the current user.
     """
-    db_contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    db_contact = db.query(Contact).filter(and_(Contact.id == contact_id, Contact.user_id == user.id)).first()
     if db_contact:
         db.delete(db_contact)
         db.commit()
     return db_contact
 
-def search_contacts(db: Session, query: str) -> List[Contact]:
+def search_contacts(db: Session, query: str, user: models.User) -> List[Contact]:
     """
-    Search contacts by first name, last name, or email using case-insensitive matching.
+    Searches for contacts by name, last name, or email, but only among the current user's records.
     """
     return db.query(Contact).filter(
-        or_(
-            Contact.first_name.ilike(f"%{query}%"),
-            Contact.last_name.ilike(f"%{query}%"),
-            Contact.email.ilike(f"%{query}%")
+        and_(
+            Contact.user_id == user.id,
+            or_(
+                Contact.first_name.ilike(f"%{query}%"),
+                Contact.last_name.ilike(f"%{query}%"),
+                Contact.email.ilike(f"%{query}%")
+            )
         )
     ).all()
 
-def get_upcoming_birthdays(db: Session) -> List[Contact]:
+def get_upcoming_birthdays(db: Session, user: models.User) -> List[Contact]:
     """
-    Retrieve contacts with birthdays within the next 7 days using SQL filters.
+    Gets a list of contacts for the current user who have birthdays within the next 7 days.
     """
     today = date.today()
     days_range = []
@@ -82,4 +85,9 @@ def get_upcoming_birthdays(db: Session) -> List[Contact]:
         ) for m, d in days_range
     ]
 
-    return db.query(Contact).filter(or_(*date_filters)).all()
+    return db.query(Contact).filter(
+        and_(
+            Contact.user_id == user.id,
+            or_(*date_filters)
+        )
+    ).all()

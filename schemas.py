@@ -38,3 +38,22 @@ class ContactResponse(ContactBase):
     id: int
     
     model_config = ConfigDict(from_attributes=True)
+
+class UserBase(BaseModel):
+    email: EmailStr
+    username: str
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=6, max_length=100)
+
+class UserResponse(UserBase):
+    id: int
+    avatar: Optional[str]
+    confirmed: bool = False
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    

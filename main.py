@@ -56,7 +56,7 @@ app.add_middleware(
 # --- Auth endpoints ---
 
 @app.post("/auth/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, tags=["Auth"])
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+async def register(user: UserCreate, request: Request, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -67,7 +67,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    await send_verification_email(user.email, user.username, str(app.url_path_for("confirm_email", token="temp")).replace("temp", ""))
+    base_url = str(request.base_url)
+    await send_verification_email(user.email, user.username, base_url)
     
     return new_user
 

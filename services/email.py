@@ -25,8 +25,8 @@ async def send_verification_email(email: str, username: str, host: str):
     try:
         token_data = {"sub": email}
         token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
-        
-        confirmation_url = f"{host}auth/confirm/{token}"
+        base_host = host.rstrip('/')
+        confirmation_url = f"{base_host}/auth/confirm/{token}"
         
         message = MessageSchema(
             subject="Please confirm your email",
